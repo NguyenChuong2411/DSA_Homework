@@ -3,36 +3,64 @@
 // Homework
 // Notes or Remarks: ......
 #include <iostream>
-#include <unordered_map>
 #include <string>
 #include <vector>
 using namespace std;
 
+// Node structure for the doubly linked list
+struct TokenNode
+{
+    string tokenId;
+    int expirationTime;
+    TokenNode *prev;
+    TokenNode *next;
+
+    TokenNode(string id, int expTime) : tokenId(id), expirationTime(expTime), prev(nullptr), next(nullptr) {}
+};
+
+// AuthenticationManager class
 class AuthenticationManager
 {
 private:
-    unordered_map<string, int> tokenMap; // Maps tokenId to its expiration time
-    int timeToLive;                      // Time-to-live duration for tokens
+    TokenNode *head; // Head of the linked list
+    TokenNode *tail; // Tail of the linked list
+    int timeToLive;  // Time-to-live duration for tokens
 
 public:
     // Constructor: Initialize the manager with the timeToLive value
-    AuthenticationManager(int ttl)
-    {
-        timeToLive = ttl;
-    }
+    AuthenticationManager(int ttl) : timeToLive(ttl), head(nullptr), tail(nullptr) {}
 
     // Token Generation: Create a new token with the current time
     void generate(string tokenId, int currentTime)
     {
-        tokenMap[tokenId] = currentTime + timeToLive; // Set expiration time
+        // Create a new token node with the expiration time
+        TokenNode *newToken = new TokenNode(tokenId, currentTime + timeToLive);
+
+        // Insert the new token at the end of the linked list
+        if (tail)
+        {
+            tail->next = newToken;
+            newToken->prev = tail;
+            tail = newToken;
+        }
+        else
+        {
+            head = tail = newToken; // First token
+        }
     }
 
     // Token Renewal: Renew the token if it's still valid (not expired)
     void renew(string tokenId, int currentTime)
     {
-        if (tokenMap.find(tokenId) != tokenMap.end() && tokenMap[tokenId] > currentTime)
+        TokenNode *current = head;
+        while (current)
         {
-            tokenMap[tokenId] = currentTime + timeToLive; // Reset the expiration time
+            if (current->tokenId == tokenId && current->expirationTime > currentTime)
+            {
+                current->expirationTime = currentTime + timeToLive; // Reset the expiration time
+                return;
+            }
+            current = current->next;
         }
     }
 
@@ -40,20 +68,54 @@ public:
     int countUnexpiredTokens(int currentTime)
     {
         int count = 0;
-        for (auto it = tokenMap.begin(); it != tokenMap.end();)
+        TokenNode *current = head;
+
+        while (current)
         {
-            if (it->second > currentTime)
+            // Check if the token is unexpired
+            if (current->expirationTime > currentTime)
             {
                 count++;
-                ++it;
             }
             else
             {
-                // Remove expired tokens
-                it = tokenMap.erase(it);
+                // Remove expired token from the list
+                TokenNode *toDelete = current;
+                if (current->prev)
+                {
+                    current->prev->next = current->next; // Bypass current node
+                }
+                else
+                {
+                    head = current->next; // Update head if needed
+                }
+                if (current->next)
+                {
+                    current->next->prev = current->prev; // Bypass current node
+                }
+                else
+                {
+                    tail = current->prev; // Update tail if needed
+                }
+                current = current->next; // Move to the next node
+                delete toDelete;         // Free memory
+                continue;                // Skip the increment of current
             }
+            current = current->next; // Move to the next token
         }
         return count;
+    }
+
+    // Destructor to clean up the linked list
+    ~AuthenticationManager()
+    {
+        TokenNode *current = head;
+        while (current)
+        {
+            TokenNode *nextNode = current->next;
+            delete current;
+            current = nextNode;
+        }
     }
 };
 
@@ -75,7 +137,7 @@ int main()
     cout << "Enter the number of operations: ";
     cin >> n;
 
-    vector<string> result; // To store the output of operations
+    vector<string> results; // To store the output of operations
 
     for (int i = 0; i < n; ++i)
     {
@@ -90,7 +152,7 @@ int main()
             cout << "Enter tokenId and currentTime: ";
             cin >> tokenId >> currentTime;
             auth.generate(tokenId, currentTime);
-            result.push_back("null"); // No output for generate
+            results.push_back("null"); // No output for generate
         }
         else if (operation == "renew")
         {
@@ -99,7 +161,7 @@ int main()
             cout << "Enter tokenId and currentTime: ";
             cin >> tokenId >> currentTime;
             auth.renew(tokenId, currentTime);
-            result.push_back("null"); // No output for renew
+            results.push_back("null"); // No output for renew
         }
         else if (operation == "countUnexpiredTokens")
         {
@@ -107,7 +169,7 @@ int main()
             cout << "Enter currentTime: ";
             cin >> currentTime;
             int count = auth.countUnexpiredTokens(currentTime);
-            result.push_back(to_string(count)); // Store the count of unexpired tokens
+            results.push_back(to_string(count)); // Store the count of unexpired tokens
         }
         else
         {
@@ -118,17 +180,11 @@ int main()
 
     // Output the results of the operations
     cout << "Results of operations: " << endl;
-    for (const string &res : result)
+    for (const string &res : results)
     {
-        if (res == "null")
-        {
-            cout << "null" << endl;
-        }
-        else
-        {
-            cout << res << endl;
-        }
+        cout << res << endl;
     }
+
     system("pause");
     return 0;
 }
