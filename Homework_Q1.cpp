@@ -3,75 +3,140 @@
 // Homework
 // Notes or Remarks: ......
 #include <iostream>
-#include <list>
 #include <string>
-#include <unordered_map>
 
 using namespace std;
 
-class MusicPlayer
+class Node
 {
-    list<string> playlist;
-    unordered_map<string, list<string>::iterator> songMap;
-    list<string>::iterator currentSong;
-
 public:
-    MusicPlayer() : currentSong(playlist.end()) {}
+    string song;
+    Node *next;
+    Node *prev;
+
+    Node(const string &song) : song(song), next(nullptr), prev(nullptr) {}
+};
+
+class LinkedList
+{
+public:
+    Node *head;
+    Node *tail;
+
+    LinkedList() : head(nullptr), tail(nullptr) {}
 
     void addSong(const string &song)
     {
-        playlist.push_back(song);
-        songMap[song] = prev(playlist.end());
-        if (currentSong == playlist.end())
+        Node *newNode = new Node(song);
+        if (!head)
         {
-            currentSong = playlist.begin();
+            head = tail = newNode;
+        }
+        else
+        {
+            tail->next = newNode;
+            newNode->prev = tail;
+            tail = newNode;
+        }
+    }
+
+    void removeSong(Node *node)
+    {
+        if (!node)
+            return;
+
+        if (node == head && node == tail)
+        {
+            head = tail = nullptr;
+        }
+        else if (node == head)
+        {
+            head = head->next;
+            head->prev = nullptr;
+        }
+        else if (node == tail)
+        {
+            tail = tail->prev;
+            tail->next = nullptr;
+        }
+        else
+        {
+            node->prev->next = node->next;
+            node->next->prev = node->prev;
+        }
+        delete node;
+    }
+
+    void displayPlaylist()
+    {
+        Node *current = head;
+        while (current)
+        {
+            cout << current->song << " ";
+            current = current->next;
+        }
+        cout << endl;
+    }
+};
+
+class MusicPlayer
+{
+    LinkedList playlist;
+    Node *currentSong;
+
+public:
+    MusicPlayer() : currentSong(nullptr) {}
+
+    void addSong(const string &song)
+    {
+        playlist.addSong(song);
+        if (!currentSong)
+        {
+            currentSong = playlist.head;
         }
     }
 
     void playNext()
     {
-        if (playlist.empty())
+        if (!currentSong || !playlist.head)
             return;
-        currentSong = next(currentSong) == playlist.end() ? playlist.begin() : next(currentSong);
+
+        currentSong = currentSong->next ? currentSong->next : playlist.head;
     }
 
     void playPrevious()
     {
-        if (playlist.empty())
+        if (!currentSong || !playlist.head)
             return;
-        currentSong = currentSong == playlist.begin() ? prev(playlist.end()) : prev(currentSong);
+
+        currentSong = currentSong->prev ? currentSong->prev : playlist.tail;
     }
 
     void removeSong(const string &song)
     {
-        if (songMap.find(song) != songMap.end())
+        Node *current = playlist.head;
+        while (current)
         {
-            auto it = songMap[song];
-            if (currentSong == it)
+            if (current->song == song)
             {
-                playNext(); // Move to the next song before removing current
+                if (current == currentSong)
+                {
+                    playNext(); // Move to the next song before removing current
+                }
+                playlist.removeSong(current);
+                if (!playlist.head)
+                {
+                    currentSong = nullptr;
+                }
+                break;
             }
-            playlist.erase(it);
-            songMap.erase(song);
-            if (playlist.empty())
-            {
-                currentSong = playlist.end();
-            }
+            current = current->next;
         }
     }
 
     void displayPlaylist()
     {
-        if (playlist.empty())
-        {
-            cout << endl;
-            return;
-        }
-        for (const auto &song : playlist)
-        {
-            cout << song << " ";
-        }
-        cout << endl;
+        playlist.displayPlaylist();
     }
 };
 
