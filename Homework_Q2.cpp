@@ -3,45 +3,62 @@
 // Homework
 // Notes or Remarks: ......
 #include <iostream>
-#include <vector>
 #include <string>
+#include <vector>
 
 using namespace std;
+
+class Node
+{
+public:
+    string url;
+    Node *prev;
+    Node *next;
+
+    Node(const string &url) : url(url), prev(nullptr), next(nullptr) {}
+};
 
 class BrowserHistory
 {
 private:
-    vector<string> history; // Stores the URLs visited
-    int current;            // Index pointing to the current page in the history
+    Node *current; // Pointer to the current page in the history
 
 public:
     // Constructor to initialize with the homepage
     BrowserHistory(string homepage)
     {
-        history.push_back(homepage); // Add the homepage to the history
-        current = 0;                 // Set current index to the homepage
+        current = new Node(homepage); // Create the homepage node and set it as the current page
     }
 
     // Visit a new URL and clear any forward history
     void visit(string url)
     {
-        history.resize(current + 1); // Clear forward history
-        history.push_back(url);      // Add the new URL to the history
-        current++;                   // Move current index to the new page
+        Node *newNode = new Node(url);
+        current->next = newNode; // Clear forward history by linking current to the new node
+        newNode->prev = current; // Link back to the current page
+        current = newNode;       // Move current to the new page
     }
 
     // Move back a specified number of steps and return the current URL
     string back(int steps)
     {
-        current = max(0, current - steps); // Calculate the new current position
-        return history[current];           // Return the URL at the new position
+        while (steps > 0 && current->prev != nullptr)
+        {
+            current = current->prev;
+            steps--;
+        }
+        return current->url; // Return the URL at the new current position
     }
 
     // Move forward a specified number of steps and return the current URL
     string forward(int steps)
     {
-        current = min((int)history.size() - 1, current + steps); // Calculate the new current position
-        return history[current];                                 // Return the URL at the new position
+        while (steps > 0 && current->next != nullptr)
+        {
+            current = current->next;
+            steps--;
+        }
+        return current->url; // Return the URL at the new current position
     }
 };
 
@@ -99,12 +116,16 @@ int main()
         }
     }
 
-    // Output the results of the operations
+    // Output the results of the operations at the end
     cout << "Results of operations: " << endl;
-    for (const string &url : result)
+    cout << "[";
+    for (int i = 0; i < result.size(); ++i)
     {
-        cout << url << endl;
+        cout << "\"" << result[i] << "\"";
+        if (i != result.size() - 1) // To avoid printing an extra comma after the last result
+            cout << ", ";
     }
+    cout << "]" << endl;
     system("pause");
     return 0;
 }
